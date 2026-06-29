@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Student Attendance</title>
+  <style>
+    :root { --bg: #0b1220; --card:#111a2e; --text:#e8eefc; --muted:#a8b3cf; --accent:#5aa2ff; --danger:#ff5a7a; --ok:#39d98a; }
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg, #060a14, var(--bg));
+      color: var(--text);
+    }
+    .wrap{ max-width: 980px; margin: 28px auto; padding: 0 16px; }
+    h1{ margin: 0 0 10px; font-size: 24px; }
+    p.sub{ margin: 0 0 22px; color: var(--muted); }
+    .grid{ display:grid; grid-template-columns: 1.2fr .8fr; gap: 16px; }
+    @media (max-width: 860px){ .grid{ grid-template-columns: 1fr; } }
+
+    .card{
+      background: rgba(17, 26, 46, .9);
+      border: 1px solid rgba(90,162,255,.25);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      backdrop-filter: blur(8px);
+    }
+
+    .row{ display:flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    label{ font-size: 13px; color: var(--muted); }
+    input[type="text"], input[type="date"]{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(168,179,207,.25);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+      min-width: 220px;
+    }
+    button{
+      background: var(--accent);
+      border: none;
+      color: #081226;
+      font-weight: 700;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button.secondary{
+      background: rgba(90,162,255,.12);
+      border: 1px solid rgba(90,162,255,.35);
+      color: var(--text);
+    }
+    button.danger{
+      background: rgba(255,90,122,.12);
+      border: 1px solid rgba(255,90,122,.35);
+      color: var(--text);
+    }
+    button:active{ transform: translateY(1px); }
+
+    table{ width:100%; border-collapse: collapse; margin-top: 12px; }
+    th, td{
+      border-bottom: 1px solid rgba(168,179,207,.15);
+      padding: 10px 6px;
+      text-align: left;
+      font-size: 14px;
+    }
+    th{ color: var(--muted); font-weight: 600; }
+    tr:hover td{ background: rgba(90,162,255,.06); }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(168,179,207,.25);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .status-dot{ width:10px; height:10px; border-radius: 50%; background: rgba(168,179,207,.6); }
+    .present .status-dot{ background: var(--ok); }
+    .absent .status-dot{ background: var(--danger); }
+
+    .actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end; }
+
+    .legend{ display:flex; gap: 10px; flex-wrap:wrap; margin-top: 10px; }
+
+    .small { font-size: 12px; color: var(--muted); line-height: 1.4; margin-top: 10px; }
+    .btn-inline{ padding: 8px 10px; border-radius: 10px; font-weight: 800; }
+    .btn-present{ background: rgba(57,217,138,.12); border:1px solid rgba(57,217,138,.35); color: var(--text); }
+    .btn-absent{ background: rgba(255,90,122,.12); border:1px solid rgba(255,90,122,.35); color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Student Attendance</h1>
+    <p class="sub">Add students and mark them Present/Absent. Stored in your browser (localStorage).</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;">
+          <div class="row">
+            <div>
+              <label for="attendanceDate">Date</label><br/>
+              <input id="attendanceDate" type="date" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="secondary" id="addStudentBtn" type="button">+ Add Student</button>
+            <button id="saveBtn" type="button">Save</button>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span class="pill present"><span class="status-dot"></span>Present</span>
+          <span class="pill absent"><span class="status-dot"></span>Absent</span>
+        </div>
+
+        <table aria-label="Attendance table">
+          <thead>
+            <tr>
+              <th style="width:60%;">Student</th>
+              <th style="width:20%;">Status</th>
+              <th style="width:20%;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTbody"></tbody>
+        </table>
+
+        <div class="small">Tip: change the date to view previously saved attendance.</div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 10px; font-size: 18px;">Summary</h2>
+
+        <div class="row" style="gap: 12px; margin-top: 10px;">
+          <div class="pill"><span class="status-dot" style="background:var(--ok)"></span><b id="presentCount">0</b> Present</div>
+          <div class="pill"><span class="status-dot" style="background:var(--danger)"></span><b id="absentCount">0</b> Absent</div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <label>Students</label>
+          <div id="studentsListPreview" class="small" style="background:rgba(255,255,255,.03); border:1px solid rgba(168,179,207,.15); border-radius:12px; padding:12px; margin-top:8px;">
+            No students yet.
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top: 16px; justify-content:flex-start;">
+          <button class="danger" id="resetBtn" type="button">Reset All</button>
+        </div>
+
+        <div class="small">Reset clears attendance + student list.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const storageKey = "attendance_v1";
+
+    const tbody = document.getElementById("studentsTbody");
+    const dateInput = document.getElementById("attendanceDate");
+    const saveBtn = document.getElementById("saveBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    const presentCountEl = document.getElementById("presentCount");
+    const absentCountEl = document.getElementById("absentCount");
+    const studentsListPreview = document.getElementById("studentsListPreview");
+    const addStudentBtn = document.getElementById("addStudentBtn");
+
+    function todayISO() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return { students: [], attendanceByDate: {} };
+        const parsed = JSON.parse(raw);
+        return {
+          students: Array.isArray(parsed.students) ? parsed.students : [],
+          attendanceByDate: parsed.attendanceByDate && typeof parsed.attendanceByDate === "object" ? parsed.attendanceByDate : {}
+        };
+      } catch {
+        return { students: [], attendanceByDate: {} };
+      }
+    }
+
+    function saveData(data) {
+      localStorage.setItem(storageKey, JSON.stringify(data));
+    }
+
+    function ensureAttendanceRecord(data, date) {
+      if (!data.attendanceByDate[date]) data.attendanceByDate[date] = {};
+      return data.attendanceByDate[date];
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","<")
+        .replaceAll(">",">")
+        .replaceAll('"','"')
+        .replaceAll("'","&#039;");
+    }
+
+    function render() {
+      const data = loadData();
+      const selectedDate = dateInput.value || todayISO();
+      dateInput.value = selectedDate;
+
+      const record = ensureAttendanceRecord(data, selectedDate);
+
+      tbody.innerHTML = "";
+      let present = 0, absent = 0;
+
+      if (data.students.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="3" style="color: var(--muted);">No students added. Click “+ Add Student”.</td>`;
+        tbody.appendChild(tr);
+      } else {
+        data.students.forEach((name) => {
+          const status = record[name];
+          const isPresent = status === "present";
+          const isAbsent = status === "absent";
+
+          if (isPresent) present++;
+          if (isAbsent) absent++;
+
+          const statusText = isPresent ? "Present" : (isAbsent ? "Absent" : "—");
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><b>${escapeHtml(name)}</b></td>
+            <td>
+              <span class="pill ${isPresent ? 'present' : (isAbsent ? 'absent' : '')}" style="margin:0;">
+                <span class="status-dot"></span>${statusText}
+              </span>
+            </td>
+            <td>
+              <div class="actions" style="justify-content:flex-start; gap:8px;">
+                <button class="btn-inline btn-present" data-action="present" data-name="${escapeHtml(name)}" type="button">Present</button>
+                <button class="btn-inline btn-absent" data-action="absent" data-name="${escapeHtml(name)}" type="button">Absent</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      presentCountEl.textContent = present;
+      absentCountEl.textContent = absent;
+
+      if (data.students.length === 0) {
+        studentsListPreview.textContent = "No students yet.";
+      } else {
+        studentsListPreview.innerHTML = data.students.map((s, i) => `• ${i+1}. <b>${escapeHtml(s)}</b>`).join("<br/>");
+      }
+    }
+
+    tbody.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+
+      const action = btn.getAttribute("data-action");
+      const name = btn.getAttribute("data-name");
+      if (!action || !name) return;
+
+      const data = loadData();
+      const selectedDate = dateInput.value || todayISO();
+
+      const record = ensureAttendanceRecord(data, selectedDate);
+      record[name] = action;
+
+      saveData(data);
+      render();
+    });
+
+    saveBtn.addEventListener("click", () => {
+      const data = loadData();
+      const selectedDate = dateInput.value || todayISO();
+      ensureAttendanceRecord(data, selectedDate);
+      saveData(data);
+      alert("Attendance saved for " + selectedDate);
+      render();
+    });
+
+    addStudentBtn.addEventListener("click", () => {
+      const data = loadData();
+      const name = prompt("Enter student name:");
+      if (!name) return;
+
+      const trimmed = name.trim();
+      if (!trimmed) return;
+
+      if (data.students.includes(trimmed)) {
+        alert("Student already exists: " + trimmed);
+        render();
+        return;
+      }
+
+      data.students.push(trimmed);
+      const selectedDate = dateInput.value || todayISO();
+      ensureAttendanceRecord(data, selectedDate);
+      saveData(data);
+      render();
+    });
+
+    resetBtn.addEventListener("click", () => {
+      const ok = confirm("Reset all attendance and student list? This cannot be undone.");
+      if (!ok) return;
+      localStorage.removeItem(storageKey);
+      render();
+    });
+
+    dateInput.addEventListener("change", render);
+
+    dateInput.value = todayISO();
+    render();
+  </script>
+</body>
+</html>
+
